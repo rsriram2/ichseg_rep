@@ -4,8 +4,8 @@ import tkinter as tk
 from PIL import Image, ImageTk
 
 # Configuration
-IMG_DIR = "image_ss_original"  # Set your directory
-OUTPUT_FILE = "annotations.csv"
+IMG_DIR = "image_ss_synth"  # Set your directory
+OUTPUT_FILE = "annotations_synth.csv"
 INITIAL_WIDTH, INITIAL_HEIGHT = 800, 600  # Set an initial window size
 STATUS_HEIGHT = 50  # Fixed height for classification labels
 
