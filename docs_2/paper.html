@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Rushil Srirambhatla, John Muschelli">
+
+<title>Robust Automated Brain Extraction of Head CT tool</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="paper_files/libs/clipboard/clipboard.min.js"></script>
+<script src="paper_files/libs/quarto-html/quarto.js"></script>
+<script src="paper_files/libs/quarto-html/popper.min.js"></script>
+<script src="paper_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="paper_files/libs/quarto-html/anchor.min.js"></script>
+<link href="paper_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="paper_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="paper_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="paper_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="paper_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Robust Automated Brain Extraction of Head CT tool</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Rushil Srirambhatla, John Muschelli </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>X-ray computed tomography (CT) scans are a vital and widely accessible imaging technique healthcare providers use to diagnose and assess neurological conditions <span class="citation" data-cites="sahni2007management chalela2007magnetic schellinger1999standardized">(<a href="#ref-sahni2007management" role="doc-biblioref">Sahni and Weinberger 2007</a>; <a href="#ref-chalela2007magnetic" role="doc-biblioref">Chalela et al. 2007</a>; <a href="#ref-schellinger1999standardized" role="doc-biblioref">Schellinger et al. 1999</a>)</span>. Segmentation of non-brain tissue from head CT scans—also known as skull stripping or brain extraction—is an essential preprocessing step in neuroimaging research and clinical analysis <span class="citation" data-cites="smith2002fast">(<a href="#ref-smith2002fast" role="doc-biblioref">Smith 2002</a>)</span>. By isolating the cortex and cerebellum, this process enables more accurate measurements of brain structures, better detection of lesions, and improved registration to brain templates <span class="citation" data-cites="zhuang2006skull">(<a href="#ref-zhuang2006skull" role="doc-biblioref">Zhuang, Valentino, and Toga 2006</a>)</span>. In brain MRI, numerous automated tools exist for this task <span class="citation" data-cites="singh2021review">(<a href="#ref-singh2021review" role="doc-biblioref">Singh and Singh 2021</a>)</span>, but head&nbsp;CT scans present unique challenges. CT scans present unique challenges due to high-density bone and variable field-of-view extending to the neck, which can interfere with brain extraction algorithms <span class="citation" data-cites="muschelli2019recommendations">(<a href="#ref-muschelli2019recommendations" role="doc-biblioref">Muschelli 2019</a>)</span>. Unlike MRI, CT requires specific preprocessing like Hounsfield unit windowing to separate brain from bone <span class="citation" data-cites="muschelli2019recommendations">(<a href="#ref-muschelli2019recommendations" role="doc-biblioref">Muschelli 2019</a>)</span>. These challenges often cause MRI-based tools to fail when applied to CT.</p>
+<p>In 2015, <span class="citation" data-cites="muschelli2015validated">(<a href="#ref-muschelli2015validated" role="doc-biblioref">Muschelli et al. 2015</a>)</span> introduced an adaptation of FSL’s Brain Extraction Tool (BET) specifically for head CT, commonly referred to as&nbsp;BET (Version 1). This method applied intensity windowing (0–100 Hounsfield units) and BET with optimized parameters to CT data, achieving high overlap accuracy (Dice coefficient ~0.99) on a small test set of manually segmented brains <span class="citation" data-cites="muschelli2015validated">(<a href="#ref-muschelli2015validated" role="doc-biblioref">Muschelli et al. 2015</a>)</span>. BET was one of the first fully automated CT skull stripping techniques and was made publicly available, allowing researchers to process CT scans without manual intervention <span class="citation" data-cites="smith2002fast">(<a href="#ref-smith2002fast" role="doc-biblioref">Smith 2002</a>)</span>. In our subsequent testing with larger datasets, we identified several limitations of BET (V1). Approximately 5% of scans could not be processed correctly, resulting in&nbsp;gross failures&nbsp;where the brain mask was unusable. Common error modes included the mask erroneously covering parts of the neck or other extracranial tissues, failing to include the entire brain (holes or missing regions), or a combination of these issues.</p>
+<p>Since 2015, there has been substantial progress in automated skull stripping methods, especially driven by advances in machine learning <span class="citation" data-cites="pei2022general">(<a href="#ref-pei2022general" role="doc-biblioref">Pei et al. 2022</a>)</span>. Deep learning-based approaches&nbsp;have achieved state-of-the-art performance in brain extraction for MRI and are increasingly being applied to CT. For example, the&nbsp;HD-BET&nbsp;tool <span class="citation" data-cites="isensee2019automated">(<a href="#ref-isensee2019automated" role="doc-biblioref">Isensee et al. 2019</a>)</span> uses a convolutional neural network trained on a wide range of brain MRI scans (including pathological cases) to produce robust brain masks. While HD-BET was developed for MRI, its architecture has been adapted for CT by some researchers (e.g., via transfer learning in a variant dubbed “HD-CTBET”), demonstrating the potential of CNNs for CT skull stripping. More recently,&nbsp;SynthStrip&nbsp;was introduced as a modality-agnostic brain extraction method trained on synthetically generated data <span class="citation" data-cites="hoopes2022synthstrip">(<a href="#ref-hoopes2022synthstrip" role="doc-biblioref">Hoopes et al. 2022</a>)</span>. SynthStrip can generalize to any brain imaging modality — from MRI to CT — without needing manual training labels, and it has shown excellent accuracy on diverse datasets. These deep learning tools are&nbsp;publicly accessible&nbsp;(often as open-source software or pretrained models) and have pushed the error rates lower than traditional methods.</p>
+<p>Despite these advances, a gap remained in having a&nbsp;highly reliable yet easily deployable&nbsp;skull stripping solution for head CT. Many deep learning solutions require careful retraining or fine-tuning for CT data, and their performance can degrade on images with unusual artifacts or anatomy not represented in training. Traditional methods like CT_BET (V1) are simple to run but prone to specific failure modes as noted. There was a need for an improved method that&nbsp;minimizes failures across a wide variety of scans while using accessible, modifiable components. In this work, we propose&nbsp;Robust Skull Strip (V2), an enhanced skull stripping pipeline that directly addresses the known shortcomings of CT_BET. By introducing targeted preprocessing and processing steps (such as neck removal and mask refinement), Robust Skull Strip V2 achieves a dramatically lower failure rate on large multi-center datasets, without requiring any complex model training or proprietary software.</p>
+</section>
+<section id="methods" class="level1">
+<h1>Methods</h1>
+<section id="robust-skull-strip-v2-method-description" class="level3">
+<h3 class="anchored" data-anchor-id="robust-skull-strip-v2-method-description">Robust Skull Strip V2: Method Description</h3>
+<p>The&nbsp;Robust Skull Strip (V2)&nbsp;method is designed as an improved pipeline over the original CT_BET (V1), directly addressing its known failure modes. The approach emphasizes simplicity and reproducibility: it utilizes widely available software tools and standard imaging resources so that others can implement it with minimal modifications. The workflow proceeds through a series of steps, each targeting a specific aspect of the skull stripping task:</p>
+<ol type="1">
+<li><p>Preprocessing – Intensity Normalization and Smoothing:&nbsp;Each input CT volume is first intensity-windowed to the range of 0–100 Hounsfield Units, focusing on the soft tissue density range that encompasses brain matter while discarding higher-density bone and lower-density air. This is the same window used in CT_BET (V1), ensuring consistency with that baseline. Additionally, V2 applies a mild 3D Gaussian smoothing (σ = 1&nbsp;mm) to the volume after windowing. The smoothing step reduces noise and small hyperdense artifacts (for example, calcifications or scanning streaks) that might otherwise confuse the brain extraction algorithm. This step was motivated by findings in the original 2015 study that suggested slight smoothing can improve segmentation stability.</p></li>
+<li><p>Template-Guided Neck Excision (Two-Pass Process):&nbsp;To eliminate the inclusion of neck and other below-brain regions, the pipeline employs a template-guided strategy. First, the head CT is roughly aligned to a reference brain template (for instance, an average brain CT or an MR template in MNI space) using a rigid or affine registration. This transform provides an approximate correspondence between the scan and anatomical landmarks. Using the aligned template, the algorithm identifies the level of the foramen magnum (the base of the skull) and&nbsp;removes all image data below that plane, effectively excising the neck. In practice, this can be done by multiplying the image with a binary mask derived from the template that has value 1 in the brain and skull region and 0 in the neck region. After this first pass neck removal, a provisional brain mask is obtained (using a quick segmentation like a conservative threshold or region growing) to check if any neck or stray regions remain connected to the brain mask. If so, a second pass is performed: the algorithm isolates the largest connected component (which should be the brain) and discards other components, and may apply the template mask again for any residual lower pieces. This two-pass excision ensures that even if the initial template alignment was not perfect, any attached neck or extracranial component that is not contiguous with the brain will be dropped. By the end of this step, the CT volume is essentially cropped to contain mostly the head and brain without the lower neck or shoulders.</p></li>
+<li><p>Re-centering via Center of Gravity Recalculation:&nbsp;Removing a large portion of the neck and lower head can shift the center of mass of the remaining image. Many brain extraction algorithms, including FSL BET, are sensitive to the initial center point from which they start expanding or contracting a surface to find the brain boundary. In CT_BET V1, the center was effectively fixed or assumed based on the original head volume, which could be biased downward if the neck was present. In V2, after neck excision, the center of gravity of the head’s intensity distribution is recomputed on the cropped image. This new center (which should lie near the middle of the brain) is used to initialize the skull stripping algorithm. By re-centering, we ensure that the subsequent brain extraction focuses on the correct region and is not offset by previously included non-brain parts. This adjustment helps prevent the brain mask from “sliding” off-center or missing the top of the brain due to an initially wrong starting point.</p></li>
+<li><p>Brain Extraction with Enhanced Parameters:&nbsp;With the image normalized, neck removed, and center defined, the core brain extraction is performed using an adapted BET algorithm (the same fundamental algorithm as in V1, but now with better inputs). The fractional intensity threshold parameter for BET is set to an optimal value (in the original CT_BET study, an aggressive threshold like 0.1 was often used, as lower values help capture the full brain in CT where contrast is low). In V2, we keep this parameter tuned for slight over-segmentation (to avoid missing any brain tissue), since subsequent steps will clean up extras. The BET algorithm then produces an initial brain mask, which, thanks to the preprocessing, is far less likely to include neck or outside tissue. The use of the updated center of gravity helps BET correctly encompass the frontal and dorsal extremities of the brain. This step yields a binary mask labeling the brain region.</p></li>
+<li><p>Morphological Post-processing (Hole Filling and Smoothing):&nbsp;The initial mask from BET is then refined with morphological operations to address any small defects. In CT_BET V1, a simple hole-filling operation was done to patch internal holes in the mask. V2 goes further by applying a&nbsp;dilate-and-erode sequence&nbsp;(sometimes called&nbsp;<em>closing</em>&nbsp;in morphology). Specifically, the brain mask is dilated slightly (using a 3D spherical kernel of radius 5 voxels, for example) to fill in any gaps or weak edges, then eroded by the same amount to return the mask roughly to its original size. This has the effect of closing holes in the mask interior and smoothing the mask outline by removing tiny extrusions or jagged parts that may have been left. The result is a clean, contiguous brain mask that tightly hugs the brain tissue without including extraneous regions. Finally, any isolated fragments (if any remain) that are not connected to the main brain mask are removed. Because the neck was already excised, such fragments are rare except perhaps small bits of skull that might have been misclassified; these are typically eliminated by the morphological operations.</p></li>
+</ol>
+<p>The output of the Robust Skull Strip V2 pipeline is a binary mask of the brain for each input CT scan. This mask can be applied to the original CT image to produce a skull-stripped image, or used as needed in downstream analyses. Notably, each step of the pipeline uses accessible computational tools: e.g., image registration can be done with an open-source library (ANTs or FSL FLIRT), BET is part of the FSL toolkit, and morphological operations can be done with common image processing libraries. The method does not rely on any machine learning model that needs training, which means it can be readily applied to new datasets without additional data collection. Default parameters (such as the smoothing kernel or morphological kernel size) were chosen based on the analysis of failure cases in the development set and remain fixed for all scans, simplifying the usage.</p>
+</section>
+</section>
+<section id="results" class="level1">
+<h1>Results</h1>
+<p>We evaluated the performance of Robust Skull Strip V2 against the original CT_BET (V1) on a large and diverse collection of head CT scans. The test dataset consisted of&nbsp;5,015 non-contrast head CT scans&nbsp;drawn from the MISTIE III clinical trial archive, which encompasses&nbsp;26 different hospital sites&nbsp;and a variety of scanner manufacturers/models (19 models in total). This multi-center dataset reflects a wide range of patient anatomies, scan qualities, and clinical conditions, providing a rigorous challenge for skull stripping algorithms. Each scan in the dataset was processed with both the baseline method (CT_BET V1) and the proposed Robust Skull Strip V2 pipeline. The outputs were then assessed for quality using a combination of automatic checks and manual review by expert image analysts. A&nbsp;“failure”&nbsp;was defined as a skull-stripping result that was clearly unusable or required manual correction – for example, if significant non-brain tissue remained in the mask (such as neck or bone) or if part of the brain was missing from the mask.</p>
+<p>Failure Rate Reduction:&nbsp;The primary outcome metric was the gross failure rate of the skull stripping. The baseline CT_BET (V1) exhibited failures in a substantial fraction of scans, confirming earlier reports of its limitations. Out of 5,015 scans, V1 produced&nbsp;268 failures, which corresponds to about&nbsp;5.34%&nbsp;of the cases. In contrast, Robust Skull Strip V2 had&nbsp;only 13 failures&nbsp;out of 5,015, a rate of&nbsp;0.26%. This represents an&nbsp;order-of-magnitude reduction&nbsp;in failure frequency. In practical terms, whereas an analyst would expect roughly 1 in 20 CT scans to have a bad brain mask with the old method, the new method brings that down to about 1 in 400 scans. Such a low failure rate approaches the realm of routine clinical acceptability, where manual intervention becomes a rarity.</p>
+</section>
+<section id="discussion" class="level1">
+<h1>Discussion</h1>
+</section>
+<section id="conclusion" class="level1">
+<h1>Conclusion</h1>
+</section>
+<section id="supplemental" class="level1 unnumbered">
+
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">Supplemental</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-chalela2007magnetic" class="csl-entry" role="listitem">
+Chalela, Julio A, Chelsea S Kidwell, Lauren M Nentwich, Marie Luby, John A Butman, Andrew M Demchuk, Michael D Hill, Nicholas Patronas, Lawrence Latour, and Steven Warach. 2007. <span>“Magnetic Resonance Imaging and Computed Tomography in Emergency Assessment of Patients with Suspected Acute Stroke: A Prospective Comparison.”</span> <em>The Lancet</em> 369 (9558): 293–98.
+</div>
+<div id="ref-hoopes2022synthstrip" class="csl-entry" role="listitem">
+Hoopes, Andrew, Jocelyn S Mora, Adrian V Dalca, Bruce Fischl, and Malte Hoffmann. 2022. <span>“SynthStrip: Skull-Stripping for Any Brain Image.”</span> <em>NeuroImage</em> 260: 119474.
+</div>
+<div id="ref-isensee2019automated" class="csl-entry" role="listitem">
+Isensee, Fabian, Marianne Schell, Irada Pflueger, Gianluca Brugnara, David Bonekamp, Ulf Neuberger, Antje Wick, et al. 2019. <span>“Automated Brain Extraction of Multisequence MRI Using Artificial Neural Networks.”</span> <em>Human Brain Mapping</em> 40 (17): 4952–64.
+</div>
+<div id="ref-muschelli2019recommendations" class="csl-entry" role="listitem">
+Muschelli, John. 2019. <span>“Recommendations for Processing Head CT Data.”</span> <em>Frontiers in Neuroinformatics</em> 13: 61.
+</div>
+<div id="ref-muschelli2015validated" class="csl-entry" role="listitem">
+Muschelli, John, Natalie L Ullman, W Andrew Mould, Paul Vespa, Daniel F Hanley, and Ciprian M Crainiceanu. 2015. <span>“Validated Automatic Brain Extraction of Head CT Images.”</span> <em>Neuroimage</em> 114: 379–85.
+</div>
+<div id="ref-pei2022general" class="csl-entry" role="listitem">
+Pei, Linmin, Murat Ak, Nourel Hoda M Tahon, Serafettin Zenkin, Safa Alkarawi, Abdallah Kamal, Mahir Yilmaz, et al. 2022. <span>“A General Skull Stripping of Multiparametric Brain MRIs Using 3D Convolutional Neural Network.”</span> <em>Scientific Reports</em> 12 (1): 10826.
+</div>
+<div id="ref-sahni2007management" class="csl-entry" role="listitem">
+Sahni, Ramandeep, and Jesse Weinberger. 2007. <span>“Management of Intracerebral Hemorrhage.”</span> <em>Vascular Health and Risk Management</em> 3 (5): 701–9.
+</div>
+<div id="ref-schellinger1999standardized" class="csl-entry" role="listitem">
+Schellinger, Peter D, Olav Jansen, Jochen B Fiebach, Werner Hacke, and Klaus Sartor. 1999. <span>“A Standardized MRI Stroke Protocol: Comparison with CT in Hyperacute Intracerebral Hemorrhage.”</span> <em>Stroke</em> 30 (4): 765–68.
+</div>
+<div id="ref-singh2021review" class="csl-entry" role="listitem">
+Singh, Mahender Kumar, and Krishna Kumar Singh. 2021. <span>“A Review of Publicly Available Automatic Brain Segmentation Methodologies, Machine Learning Models, Recent Advancements, and Their Comparison.”</span> <em>Annals of Neurosciences</em> 28 (1-2): 82–93.
+</div>
+<div id="ref-smith2002fast" class="csl-entry" role="listitem">
+Smith, Stephen M. 2002. <span>“Fast Robust Automated Brain Extraction.”</span> <em>Human Brain Mapping</em> 17 (3): 143–55.
+</div>
+<div id="ref-zhuang2006skull" class="csl-entry" role="listitem">
+Zhuang, Audrey H, Daniel J Valentino, and Arthur W Toga. 2006. <span>“Skull-Stripping Magnetic Resonance Brain Images Using a Model-Based Level Set.”</span> <em>NeuroImage</em> 32 (1): 79–92.
+</div>
+</div></section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

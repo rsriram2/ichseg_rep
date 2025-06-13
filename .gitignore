@@ -5,3 +5,12 @@
 data/.Rapp.history
 inst/doc
 docs
+.DS_Store
+CT_BET/
+robust/
+synthstrip/
+HD_CTBET/
+*.csv
+*.png
+*.jpg      
+*.pdf
