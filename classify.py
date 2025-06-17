@@ -4,8 +4,8 @@ import tkinter as tk
 from PIL import Image, ImageTk
 
 # Configuration
-IMG_DIR = "v1/image_ss_original_more"  # Set your directory
-OUTPUT_FILE = "robust/image_ss_original_more.csv"
+IMG_DIR = "/Users/rushil/ichseg/v1/image_ss_original_failures"  # Set your directory
+OUTPUT_FILE = "/Users/rushil/ichseg/v1/annotations_failures.csv"
 INITIAL_WIDTH, INITIAL_HEIGHT = 800, 600  # Set an initial window size
 STATUS_HEIGHT = 50  # Fixed height for classification labels
 
@@ -45,7 +45,7 @@ print(f"📌 Starting at image index {img_index}: {img_files[img_index]}")
 
 # Classification state
 classification_keys = [
-    "1 - Neck", "2 - Gantry tilt", "3 - Holes", "4 - Nonbrain",
+    "1 - Neck", "2 - White Dot", "3 - Holes", "4 - Nonbrain",
     "5 - CTA", "6 - Noisy Artifacts", "7 - Craniotomy"
 ]
 classification = {key: "no" for key in classification_keys}
