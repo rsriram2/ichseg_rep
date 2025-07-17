@@ -4,8 +4,8 @@ import tkinter as tk
 from PIL import Image, ImageTk
 
 # Configuration
-IMG_DIR = "/Users/rushil/ichseg/ctbet/image_ss_ctbet_failures"  # Set your directory
-OUTPUT_FILE = "/Users/rushil/ichseg/ctbet/annotations_failures.csv"
+IMG_DIR = "/Users/rushil/ichseg/dockerctbet/image_ss_dockerctbet_failures"  # Set your directory
+OUTPUT_FILE = "/Users/rushil/ichseg/dockerctbet/annotations_failures.csv"
 INITIAL_WIDTH, INITIAL_HEIGHT = 800, 600  # Set an initial window size
 STATUS_HEIGHT = 50  # Fixed height for classification labels
 

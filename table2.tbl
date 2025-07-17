@@ -1,0 +1,16 @@
+\begin{table}
+\caption{Overall QC summary by algorithm}
+\label{tab:qc_overall}
+\begin{tabular}{l@{\hskip 12pt}S[table-format=3.2]S[table-format=3.2]S[table-format=3.2]}
+\toprule
+\textbf{Method} & \textbf{Total Count} & \textbf{Pass 1 Failure Rate} & \textbf{Pass 2 Failure Rate} \\
+\midrule
+v1 & 5109 & 16.870000 & 7.610000 \\
+robust & 5109 & 0.630000 & 0.290000 \\
+synthstrip & 5109 & 96.300000 & \bfseries 76.51 \\
+hdctbet & 5109 & 99.750000 & 27.130000 \\
+ctbet & 2425 & 70.310000 & 38.140000 \\
+brainchop & 5109 & 85.540000 & 17.070000 \\
+\bottomrule
+\end{tabular}
+\end{table}
